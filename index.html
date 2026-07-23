@@ -1,0 +1,486 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Qui fait quoi ? — Répartition des laboratoires</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#F5F7F4;
+    --surface:#FFFFFF;
+    --primary:#0F6A55;
+    --primary-dark:#0A4E3F;
+    --primary-light:#E4F1EC;
+    --amber:#B7791F;
+    --amber-light:#FBF0DD;
+    --text:#17241F;
+    --text-muted:#5D6B64;
+    --border:#E2E7E1;
+    --radius:14px;
+    --shadow:0 1px 2px rgba(15,40,30,.04), 0 8px 24px rgba(15,40,30,.06);
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--bg);
+    color:var(--text);
+    font-family:'Inter',system-ui,-apple-system,sans-serif;
+    -webkit-font-smoothing:antialiased;
+    min-height:100vh;
+    padding-bottom:64px;
+  }
+  h1,h2,h3,.display{font-family:'Sora',system-ui,sans-serif;}
+
+  /* ---------- Header ---------- */
+  header{
+    background:linear-gradient(160deg,var(--primary-dark),var(--primary) 70%);
+    color:#fff;
+    padding:22px 20px 20px;
+    border-radius:0 0 22px 22px;
+    box-shadow:var(--shadow);
+    position:relative;
+  }
+  header .eyebrow{
+    font-size:12px; letter-spacing:.08em; text-transform:uppercase;
+    opacity:.75; font-weight:600; margin-bottom:4px;
+  }
+  header h1{
+    margin:0; font-size:22px; font-weight:800; letter-spacing:-.01em;
+  }
+  header p{margin:6px 0 0; font-size:13.5px; opacity:.85; max-width:520px; line-height:1.4;}
+  .gear{
+    position:absolute; top:18px; right:16px;
+    width:34px; height:34px; border-radius:10px;
+    background:rgba(255,255,255,.14); border:1px solid rgba(255,255,255,.25);
+    color:#fff; font-size:16px; cursor:pointer; display:flex; align-items:center; justify-content:center;
+  }
+  .gear:hover{background:rgba(255,255,255,.24);}
+
+  /* ---------- Tabs ---------- */
+  .tabs{
+    display:flex; gap:6px; background:var(--surface);
+    margin:16px 16px 0; padding:5px; border-radius:12px;
+    box-shadow:var(--shadow); border:1px solid var(--border);
+  }
+  .tab{
+    flex:1; text-align:center; padding:10px 8px; border-radius:9px;
+    font-weight:600; font-size:13.5px; color:var(--text-muted);
+    cursor:pointer; border:none; background:transparent; font-family:inherit;
+  }
+  .tab.active{background:var(--primary); color:#fff;}
+
+  main{padding:16px; max-width:640px; margin:0 auto;}
+  .panel{display:none;}
+  .panel.active{display:block;}
+
+  .card{
+    background:var(--surface); border:1px solid var(--border);
+    border-radius:var(--radius); padding:16px; box-shadow:var(--shadow);
+    margin-bottom:14px;
+  }
+  label{font-size:12.5px; font-weight:600; color:var(--text-muted); display:block; margin-bottom:6px; text-transform:uppercase; letter-spacing:.03em;}
+  select, input[type=text]{
+    width:100%; padding:11px 12px; border:1.5px solid var(--border); border-radius:10px;
+    font-size:15px; font-family:inherit; background:#fff; color:var(--text);
+  }
+  select:focus, input:focus{outline:none; border-color:var(--primary);}
+
+  .field{margin-bottom:12px;}
+  .field:last-child{margin-bottom:0;}
+
+  /* ---------- Résultat recherche ---------- */
+  #resultatZone{margin-top:14px;}
+  .labo-title{font-size:17px; font-weight:700; margin:0 0 10px;}
+  .contact-card{
+    border:1px solid var(--border); border-radius:12px; padding:13px 14px;
+    margin-bottom:10px; background:#FAFBF9;
+  }
+  .contact-card .nom{font-weight:700; font-size:15px;}
+  .contact-card .pharmacie{color:var(--text-muted); font-size:13px; margin-top:1px;}
+  .contact-links{display:flex; flex-wrap:wrap; gap:8px; margin-top:9px;}
+  .contact-links a{
+    font-size:13px; font-weight:600; color:var(--primary-dark);
+    background:var(--primary-light); padding:6px 10px; border-radius:8px;
+    text-decoration:none; display:inline-flex; align-items:center; gap:5px;
+  }
+  .empty-state{
+    background:var(--amber-light); border:1px solid #ECD9AE; color:#7A5312;
+    border-radius:12px; padding:14px; font-size:14px; line-height:1.5;
+  }
+
+  /* ---------- Gestion perso ---------- */
+  .search-row{margin:14px 0 10px;}
+  .labo-row{
+    display:flex; align-items:center; justify-content:space-between; gap:10px;
+    padding:11px 12px; border:1px solid var(--border); border-radius:10px;
+    margin-bottom:8px; background:#fff;
+  }
+  .labo-row .left{display:flex; align-items:center; gap:11px; min-width:0;}
+  .labo-row .nom{font-weight:600; font-size:14.5px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+  .labo-row .autres{font-size:11.5px; color:var(--text-muted); margin-top:2px;}
+  .chk{
+    width:24px; height:24px; border-radius:7px; border:2px solid var(--border);
+    display:flex; align-items:center; justify-content:center; flex:none; cursor:pointer;
+    font-size:15px; color:transparent; font-weight:700; transition:.15s;
+  }
+  .chk.on{background:var(--primary); border-color:var(--primary); color:#fff;}
+  .chk.saving{opacity:.5;}
+
+  /* ---------- Jauge de charge ---------- */
+  .gauge-title{font-size:13px; font-weight:700; color:var(--text-muted); text-transform:uppercase; letter-spacing:.03em; margin-bottom:10px;}
+  .gauge-row{display:flex; align-items:center; gap:10px; margin-bottom:7px;}
+  .gauge-name{width:118px; font-size:12.5px; font-weight:600; flex:none; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+  .gauge-bar-bg{flex:1; height:9px; background:var(--primary-light); border-radius:5px; overflow:hidden;}
+  .gauge-bar{height:100%; background:var(--primary); border-radius:5px;}
+  .gauge-row.me .gauge-name{color:var(--primary-dark); font-weight:800;}
+  .gauge-row.me .gauge-bar{background:var(--amber);}
+  .gauge-val{width:22px; text-align:right; font-size:12px; color:var(--text-muted); flex:none;}
+
+  .muted{color:var(--text-muted); font-size:13px;}
+  .center{text-align:center;}
+  .spin{display:inline-block; width:18px; height:18px; border:2.5px solid var(--primary-light); border-top-color:var(--primary); border-radius:50%; animation:sp .7s linear infinite;}
+  @keyframes sp{to{transform:rotate(360deg);}}
+
+  /* ---------- Toast ---------- */
+  #toast{
+    position:fixed; left:50%; bottom:20px; transform:translate(-50%,120%);
+    background:var(--text); color:#fff; padding:11px 18px; border-radius:10px;
+    font-size:13.5px; font-weight:500; box-shadow:var(--shadow); transition:transform .25s ease;
+    z-index:50; max-width:90%; text-align:center;
+  }
+  #toast.show{transform:translate(-50%,0);}
+
+  /* ---------- Modal réglages ---------- */
+  .overlay{
+    position:fixed; inset:0; background:rgba(15,30,25,.45); display:none;
+    align-items:center; justify-content:center; z-index:60; padding:16px;
+  }
+  .overlay.show{display:flex;}
+  .modal{background:#fff; border-radius:16px; padding:22px; width:100%; max-width:420px; box-shadow:var(--shadow);}
+  .modal h3{margin:0 0 6px;}
+  .modal p{font-size:13px; color:var(--text-muted); line-height:1.5; margin:0 0 14px;}
+  .modal .actions{display:flex; gap:8px; margin-top:16px;}
+  button.btn{
+    font-family:inherit; font-weight:700; font-size:14px; padding:11px 16px;
+    border-radius:10px; border:none; cursor:pointer;
+  }
+  .btn-primary{background:var(--primary); color:#fff; flex:1;}
+  .btn-ghost{background:var(--bg); color:var(--text); border:1px solid var(--border);}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="eyebrow">Répartition laboratoires</div>
+  <h1>Qui fait quoi ?</h1>
+  <p>Trouvez le bon interlocuteur pour un laboratoire, ou gérez les vôtres.</p>
+  <button class="gear" id="btnSettings" title="Réglages">⚙</button>
+</header>
+
+<div class="tabs">
+  <button class="tab active" data-tab="recherche">🔍 Trouver un contact</button>
+  <button class="tab" data-tab="gestion">✅ Gérer mes labos</button>
+</div>
+
+<main>
+
+  <!-- ONGLET RECHERCHE -->
+  <section class="panel active" id="panel-recherche">
+    <div class="card">
+      <div class="field">
+        <label for="selLabo">Laboratoire</label>
+        <input type="text" id="filtreLabo" placeholder="Rechercher un laboratoire…" style="margin-bottom:8px;">
+        <select id="selLabo"><option value="">— Choisir un laboratoire —</option></select>
+      </div>
+    </div>
+    <div id="resultatZone"></div>
+  </section>
+
+  <!-- ONGLET GESTION -->
+  <section class="panel" id="panel-gestion">
+    <div class="card">
+      <div class="field">
+        <label for="selMoi">Je suis</label>
+        <select id="selMoi"><option value="">— Choisir mon nom —</option></select>
+      </div>
+    </div>
+
+    <div id="zoneGestion" style="display:none;">
+      <input type="text" id="filtreGestion" class="search-row" style="display:block;" placeholder="Filtrer la liste des laboratoires…">
+      <div id="listeLabos"></div>
+
+      <div class="card" style="margin-top:18px;">
+        <div class="gauge-title">Répartition par pharmacien</div>
+        <div id="jauge"></div>
+      </div>
+    </div>
+    <p class="muted center" id="msgChoisir" style="margin-top:18px;">Choisissez votre nom ci-dessus pour voir et cocher vos laboratoires.</p>
+  </section>
+
+  <p class="muted center" id="etatChargement" style="margin-top:8px;"><span class="spin"></span>&nbsp; Chargement des données…</p>
+</main>
+
+<div id="toast"></div>
+
+<div class="overlay" id="overlay">
+  <div class="modal">
+    <h3>Réglages</h3>
+    <p>Collez ici l'URL de déploiement de l'application Apps Script (Web App) reliée au Google Sheet.</p>
+    <div class="field">
+      <label for="inpUrl">URL de l'Apps Script</label>
+      <input type="text" id="inpUrl" placeholder="https://script.google.com/macros/s/…/exec">
+    </div>
+    <div class="actions">
+      <button class="btn btn-ghost" id="btnCloseSettings">Fermer</button>
+      <button class="btn btn-primary" id="btnSaveSettings">Enregistrer</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  var LS_KEY = "qfq_config_v1";
+  var config = JSON.parse(localStorage.getItem(LS_KEY) || "{}");
+  var DATA = null; // { pharmacistes, labos, annuaire }
+
+  // ---------- Utilitaires ----------
+  function normalize(s){
+    return String(s||"").toUpperCase()
+      .normalize("NFD").replace(/[\u0300-\u036f]/g,"")
+      .replace(/[^A-Z0-9]+/g," ").trim();
+  }
+  function tokens(s){ return normalize(s).split(" ").filter(function(t){return t.length>1;}); }
+
+  function toast(msg){
+    var t = document.getElementById("toast");
+    t.textContent = msg;
+    t.classList.add("show");
+    clearTimeout(toast._h);
+    toast._h = setTimeout(function(){ t.classList.remove("show"); }, 2600);
+  }
+
+  function matchAnnuaire(nomPharmacien, annuaire){
+    var target = tokens(nomPharmacien);
+    var best = null, bestScore = 0;
+    (annuaire||[]).forEach(function(entry){
+      var candTokens = tokens(entry.titulaire).concat(tokens(entry.pharmacie));
+      var score = 0;
+      target.forEach(function(t){ if(candTokens.indexOf(t) !== -1) score++; });
+      if(score > bestScore){ bestScore = score; best = entry; }
+    });
+    return bestScore > 0 ? best : null;
+  }
+
+  // ---------- Réglages ----------
+  var overlay = document.getElementById("overlay");
+  function openSettings(){
+    document.getElementById("inpUrl").value = config.url || "";
+    overlay.classList.add("show");
+  }
+  document.getElementById("btnSettings").onclick = openSettings;
+  document.getElementById("btnCloseSettings").onclick = function(){ overlay.classList.remove("show"); };
+  document.getElementById("btnSaveSettings").onclick = function(){
+    var v = document.getElementById("inpUrl").value.trim();
+    if(!v){ toast("Merci de saisir une URL."); return; }
+    config.url = v;
+    localStorage.setItem(LS_KEY, JSON.stringify(config));
+    overlay.classList.remove("show");
+    chargerDonnees();
+  };
+
+  // ---------- Onglets ----------
+  document.querySelectorAll(".tab").forEach(function(tab){
+    tab.onclick = function(){
+      document.querySelectorAll(".tab").forEach(function(t){t.classList.remove("active");});
+      document.querySelectorAll(".panel").forEach(function(p){p.classList.remove("active");});
+      tab.classList.add("active");
+      document.getElementById("panel-"+tab.dataset.tab).classList.add("active");
+    };
+  });
+
+  // ---------- Chargement des données ----------
+  function chargerDonnees(){
+    if(!config.url){ openSettings(); return; }
+    document.getElementById("etatChargement").style.display = "block";
+    fetch(config.url + "?action=data")
+      .then(function(r){ return r.json(); })
+      .then(function(data){
+        if(data.error){ throw new Error(data.error); }
+        DATA = data;
+        document.getElementById("etatChargement").style.display = "none";
+        remplirSelects();
+        renderJauge();
+      })
+      .catch(function(err){
+        document.getElementById("etatChargement").innerHTML =
+          '<span class="muted">Impossible de charger les données (' + err.message + '). </span>' +
+          '<button class="btn btn-ghost" id="btnRetry" style="margin-top:8px;">Réessayer</button>';
+        document.getElementById("btnRetry").onclick = chargerDonnees;
+      });
+  }
+
+  function remplirSelects(){
+    var selLabo = document.getElementById("selLabo");
+    var selMoi = document.getElementById("selMoi");
+    selLabo.innerHTML = '<option value="">— Choisir un laboratoire —</option>';
+    DATA.labos.forEach(function(l){
+      var o = document.createElement("option"); o.value = l.nom; o.textContent = l.nom;
+      selLabo.appendChild(o);
+    });
+    selMoi.innerHTML = '<option value="">— Choisir mon nom —</option>';
+    DATA.pharmacistes.forEach(function(p){
+      var o = document.createElement("option"); o.value = p; o.textContent = p;
+      selMoi.appendChild(o);
+    });
+    if(config.moi && DATA.pharmacistes.indexOf(config.moi) !== -1){
+      selMoi.value = config.moi;
+      afficherListeGestion();
+    }
+  }
+
+  // ---------- Onglet recherche ----------
+  var selLabo = document.getElementById("selLabo");
+  var filtreLabo = document.getElementById("filtreLabo");
+  filtreLabo.addEventListener("input", function(){
+    var q = normalize(filtreLabo.value);
+    Array.prototype.forEach.call(selLabo.options, function(opt){
+      if(!opt.value){ opt.hidden = false; return; }
+      opt.hidden = q && normalize(opt.value).indexOf(q) === -1;
+    });
+  });
+  selLabo.addEventListener("change", afficherResultat);
+
+  function afficherResultat(){
+    var nomLabo = selLabo.value;
+    var zone = document.getElementById("resultatZone");
+    if(!nomLabo){ zone.innerHTML = ""; return; }
+    var labo = DATA.labos.find(function(l){ return l.nom === nomLabo; });
+    var assignes = DATA.pharmacistes.filter(function(p){ return labo.assign[p]; });
+
+    var html = '<div class="card"><h3 class="labo-title">' + escapeHtml(nomLabo) + '</h3>';
+    if(assignes.length === 0){
+      html += '<div class="empty-state">Personne n\'est encore en charge de ce laboratoire. Passez sur l\'onglet <strong>Gérer mes labos</strong> pour vous l\'attribuer.</div>';
+    } else {
+      assignes.forEach(function(p){
+        var e = matchAnnuaire(p, DATA.annuaire);
+        html += '<div class="contact-card"><div class="nom">' + escapeHtml(p) + '</div>';
+        if(e && e.pharmacie) html += '<div class="pharmacie">' + escapeHtml(e.pharmacie) + (e.ville ? ' · ' + escapeHtml(e.ville) : '') + '</div>';
+        html += '<div class="contact-links">';
+        if(e && e.telPro) html += '<a href="tel:' + escapeHtml(e.telPro.replace(/\s+/g,"")) + '">📞 ' + escapeHtml(e.telPro) + '</a>';
+        if(e && e.gsm) html += '<a href="tel:' + escapeHtml(e.gsm.replace(/\s+/g,"")) + '">📱 ' + escapeHtml(e.gsm) + '</a>';
+        if(e && e.email) html += '<a href="mailto:' + escapeHtml(e.email) + '">✉️ Email</a>';
+        html += '</div></div>';
+      });
+    }
+    html += '</div>';
+    zone.innerHTML = html;
+  }
+
+  // ---------- Onglet gestion ----------
+  var selMoi = document.getElementById("selMoi");
+  selMoi.addEventListener("change", function(){
+    config.moi = selMoi.value;
+    localStorage.setItem(LS_KEY, JSON.stringify(config));
+    afficherListeGestion();
+  });
+  document.getElementById("filtreGestion").addEventListener("input", afficherListeGestion);
+
+  function afficherListeGestion(){
+    var zoneGestion = document.getElementById("zoneGestion");
+    var msg = document.getElementById("msgChoisir");
+    var moi = selMoi.value;
+    if(!moi){ zoneGestion.style.display = "none"; msg.style.display = "block"; return; }
+    zoneGestion.style.display = "block"; msg.style.display = "none";
+
+    var q = normalize(document.getElementById("filtreGestion").value);
+    var cont = document.getElementById("listeLabos");
+    cont.innerHTML = "";
+
+    DATA.labos.forEach(function(labo){
+      if(q && normalize(labo.nom).indexOf(q) === -1) return;
+      var moiCoche = !!labo.assign[moi];
+      var autres = DATA.pharmacistes.filter(function(p){ return p !== moi && labo.assign[p]; });
+
+      var row = document.createElement("div");
+      row.className = "labo-row";
+      row.innerHTML =
+        '<div class="left">' +
+          '<div class="chk' + (moiCoche ? ' on' : '') + '">' + (moiCoche ? '✓' : '') + '</div>' +
+          '<div><div class="nom">' + escapeHtml(labo.nom) + '</div>' +
+          (autres.length ? '<div class="autres">aussi : ' + escapeHtml(autres.join(", ")) + '</div>' : '') +
+          '</div>' +
+        '</div>';
+
+      var chk = row.querySelector(".chk");
+      chk.onclick = function(){ toggle(labo, moi, !moiCoche, chk, row); };
+      cont.appendChild(row);
+    });
+
+    if(!cont.children.length){
+      cont.innerHTML = '<p class="muted center">Aucun laboratoire ne correspond à la recherche.</p>';
+    }
+  }
+
+  function toggle(labo, moi, nouvelleValeur, chk, row){
+    chk.classList.add("saving");
+    var avant = !!labo.assign[moi];
+    labo.assign[moi] = nouvelleValeur; // optimiste
+
+    fetch(config.url, {
+      method: "POST",
+      headers: {"Content-Type": "text/plain;charset=utf-8"},
+      body: JSON.stringify({ action:"toggle", labo: labo.nom, pharmacien: moi, valeur: nouvelleValeur, auteur: moi })
+    })
+      .then(function(r){ return r.json(); })
+      .then(function(res){
+        if(res.error) throw new Error(res.error);
+        chk.classList.remove("saving");
+        chk.classList.toggle("on", nouvelleValeur);
+        chk.textContent = nouvelleValeur ? "✓" : "";
+        toast(nouvelleValeur ? "Ajouté à vos laboratoires" : "Retiré de vos laboratoires");
+        renderJauge();
+        // met à jour la ligne "autres" au cas où
+        afficherListeGestion();
+      })
+      .catch(function(err){
+        labo.assign[moi] = avant; // rollback
+        chk.classList.remove("saving");
+        toast("Échec de l'enregistrement — réessayez.");
+      });
+  }
+
+  // ---------- Jauge de charge ----------
+  function renderJauge(){
+    var moi = selMoi.value;
+    var counts = DATA.pharmacistes.map(function(p){
+      var n = DATA.labos.reduce(function(acc,l){ return acc + (l.assign[p] ? 1 : 0); }, 0);
+      return { nom:p, n:n };
+    }).sort(function(a,b){ return b.n - a.n; });
+    var max = Math.max.apply(null, counts.map(function(c){return c.n;}).concat([1]));
+
+    var html = "";
+    counts.forEach(function(c){
+      html += '<div class="gauge-row' + (c.nom===moi ? ' me' : '') + '">' +
+        '<div class="gauge-name">' + escapeHtml(c.nom) + '</div>' +
+        '<div class="gauge-bar-bg"><div class="gauge-bar" style="width:' + Math.round(c.n/max*100) + '%"></div></div>' +
+        '<div class="gauge-val">' + c.n + '</div>' +
+      '</div>';
+    });
+    document.getElementById("jauge").innerHTML = html;
+  }
+
+  function escapeHtml(s){
+    return String(s||"").replace(/[&<>"']/g, function(c){
+      return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c];
+    });
+  }
+
+  chargerDonnees();
+})();
+</script>
+</body>
+</html>
