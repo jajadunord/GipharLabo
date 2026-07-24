@@ -90,9 +90,28 @@
   .field{margin-bottom:12px;}
   .field:last-child{margin-bottom:0;}
 
+  /* ---------- Autocomplétion ---------- */
+  .autocomplete{position:relative;}
+  .suggestions{
+    position:absolute; left:0; right:0; top:calc(100% + 4px); z-index:20;
+    background:#fff; border:1.5px solid var(--border); border-radius:10px;
+    box-shadow:var(--shadow); max-height:260px; overflow-y:auto; display:none;
+  }
+  .suggestions.show{display:block;}
+  .suggestion{
+    padding:10px 12px; font-size:14.5px; cursor:pointer;
+    display:flex; justify-content:space-between; align-items:center; gap:8px;
+  }
+  .suggestion .n{font-size:12px; color:var(--text-muted); font-weight:600; flex:none;}
+  .suggestion:hover, .suggestion.active{background:var(--primary-light);}
+  .suggestion + .suggestion{border-top:1px solid var(--border);}
+  .suggestion.empty{color:var(--text-muted); cursor:default;}
+  .suggestion.empty:hover{background:transparent;}
+
   /* ---------- Résultat recherche ---------- */
   #resultatZone{margin-top:14px;}
   .labo-title{font-size:17px; font-weight:700; margin:0 0 10px;}
+  .labo-title .count{color:var(--text-muted); font-weight:600;}
   .contact-card{
     border:1px solid var(--border); border-radius:12px; padding:13px 14px;
     margin-bottom:10px; background:#FAFBF9;
@@ -138,6 +157,13 @@
   .gauge-row.me .gauge-bar{background:var(--amber);}
   .gauge-val{width:22px; text-align:right; font-size:12px; color:var(--text-muted); flex:none;}
 
+  .pharma-card .role{
+    display:inline-block; font-size:10.5px; font-weight:700; text-transform:uppercase;
+    letter-spacing:.04em; color:var(--primary-dark); background:var(--primary-light);
+    padding:2px 7px; border-radius:6px; margin-bottom:6px;
+  }
+  .pharma-card .addr{color:var(--text-muted); font-size:12.5px; margin-top:2px;}
+
   .muted{color:var(--text-muted); font-size:13px;}
   .center{text-align:center;}
   .spin{display:inline-block; width:18px; height:18px; border:2.5px solid var(--primary-light); border-top-color:var(--primary); border-radius:50%; animation:sp .7s linear infinite;}
@@ -182,6 +208,7 @@
 <div class="tabs">
   <button class="tab active" data-tab="recherche">🔍 Trouver un contact</button>
   <button class="tab" data-tab="gestion">✅ Gérer mes labos</button>
+  <button class="tab" data-tab="pharmacies">🏥 Pharmacies</button>
 </div>
 
 <main>
@@ -189,10 +216,10 @@
   <!-- ONGLET RECHERCHE -->
   <section class="panel active" id="panel-recherche">
     <div class="card">
-      <div class="field">
-        <label for="selLabo">Laboratoire</label>
-        <input type="text" id="filtreLabo" placeholder="Rechercher un laboratoire…" style="margin-bottom:8px;">
-        <select id="selLabo"><option value="">— Choisir un laboratoire —</option></select>
+      <div class="field autocomplete">
+        <label for="filtreLabo">Laboratoire</label>
+        <input type="text" id="filtreLabo" autocomplete="off" placeholder="Tapez le nom d'un laboratoire…">
+        <div class="suggestions" id="suggestions"></div>
       </div>
     </div>
     <div id="resultatZone"></div>
@@ -219,6 +246,12 @@
     <p class="muted center" id="msgChoisir" style="margin-top:18px;">Choisissez votre nom ci-dessus pour voir et cocher vos laboratoires.</p>
   </section>
 
+  <!-- ONGLET ANNUAIRE PHARMACIES -->
+  <section class="panel" id="panel-pharmacies">
+    <input type="text" id="filtrePharmacies" class="search-row" style="display:block;" placeholder="Rechercher une pharmacie, une ville…">
+    <div id="listePharmacies"></div>
+  </section>
+
   <p class="muted center" id="etatChargement" style="margin-top:8px;"><span class="spin"></span>&nbsp; Chargement des données…</p>
 </main>
 
@@ -230,7 +263,7 @@
     <p>Collez ici l'URL de déploiement de l'application Apps Script (Web App) reliée au Google Sheet.</p>
     <div class="field">
       <label for="inpUrl">URL de l'Apps Script</label>
-      <input type="text" id="inpUrl" placeholder="https://script.google.com/macros/s/…/exec">
+      <input type="text" id="inpUrl" placeholder="https://script.google.com/macros/s/AKfycbyTP64UO3AeNaxWZgN14SPVw0aAD-X3rtCqfXNWoo8IBpViFLQ2gtXA5qxygt4R5dmf/exec">
     </div>
     <div class="actions">
       <button class="btn btn-ghost" id="btnCloseSettings">Fermer</button>
@@ -244,7 +277,9 @@
   "use strict";
 
   var LS_KEY = "qfq_config_v1";
+  var DEFAULT_URL = "https://script.google.com/macros/s/AKfycbyTP64UO3AeNaxWZgN14SPVw0aAD-X3rtCqfXNWoo8IBpViFLQ2gtXA5qxygt4R5dmf/exec";
   var config = JSON.parse(localStorage.getItem(LS_KEY) || "{}");
+  if(!config.url){ config.url = DEFAULT_URL; }
   var DATA = null; // { pharmacistes, labos, annuaire }
 
   // ---------- Utilitaires ----------
@@ -323,14 +358,12 @@
       });
   }
 
+  function countAssignes(labo){
+    return DATA.pharmacistes.reduce(function(acc,p){ return acc + (labo.assign[p] ? 1 : 0); }, 0);
+  }
+
   function remplirSelects(){
-    var selLabo = document.getElementById("selLabo");
     var selMoi = document.getElementById("selMoi");
-    selLabo.innerHTML = '<option value="">— Choisir un laboratoire —</option>';
-    DATA.labos.forEach(function(l){
-      var o = document.createElement("option"); o.value = l.nom; o.textContent = l.nom;
-      selLabo.appendChild(o);
-    });
     selMoi.innerHTML = '<option value="">— Choisir mon nom —</option>';
     DATA.pharmacistes.forEach(function(p){
       var o = document.createElement("option"); o.value = p; o.textContent = p;
@@ -340,28 +373,68 @@
       selMoi.value = config.moi;
       afficherListeGestion();
     }
+    afficherPharmacies();
   }
 
-  // ---------- Onglet recherche ----------
-  var selLabo = document.getElementById("selLabo");
+  // ---------- Onglet recherche : autocomplétion ----------
   var filtreLabo = document.getElementById("filtreLabo");
-  filtreLabo.addEventListener("input", function(){
-    var q = normalize(filtreLabo.value);
-    Array.prototype.forEach.call(selLabo.options, function(opt){
-      if(!opt.value){ opt.hidden = false; return; }
-      opt.hidden = q && normalize(opt.value).indexOf(q) === -1;
-    });
-  });
-  selLabo.addEventListener("change", afficherResultat);
+  var boiteSuggestions = document.getElementById("suggestions");
+  var suggestionsCourantes = [];
+  var indexActif = -1;
 
-  function afficherResultat(){
-    var nomLabo = selLabo.value;
+  filtreLabo.addEventListener("input", function(){ renderSuggestions(filtreLabo.value); });
+  filtreLabo.addEventListener("focus", function(){ if(filtreLabo.value) renderSuggestions(filtreLabo.value); });
+  filtreLabo.addEventListener("blur", function(){ setTimeout(function(){ boiteSuggestions.classList.remove("show"); }, 150); });
+  filtreLabo.addEventListener("keydown", function(ev){
+    if(!boiteSuggestions.classList.contains("show") || !suggestionsCourantes.length) return;
+    if(ev.key === "ArrowDown"){ ev.preventDefault(); indexActif = Math.min(indexActif+1, suggestionsCourantes.length-1); marquerActif(); }
+    else if(ev.key === "ArrowUp"){ ev.preventDefault(); indexActif = Math.max(indexActif-1, 0); marquerActif(); }
+    else if(ev.key === "Enter"){ ev.preventDefault(); var idx = indexActif >= 0 ? indexActif : 0; selectLabo(suggestionsCourantes[idx].nom); }
+    else if(ev.key === "Escape"){ boiteSuggestions.classList.remove("show"); }
+  });
+
+  function marquerActif(){
+    Array.prototype.forEach.call(boiteSuggestions.children, function(el,i){
+      el.classList.toggle("active", i === indexActif);
+    });
+  }
+
+  function renderSuggestions(query){
+    if(!DATA){ return; }
+    var q = normalize(query);
+    var liste = !q ? DATA.labos : DATA.labos.filter(function(l){ return normalize(l.nom).indexOf(q) !== -1; });
+    suggestionsCourantes = liste.slice(0, 8);
+    indexActif = -1;
+
+    if(!suggestionsCourantes.length){
+      boiteSuggestions.innerHTML = '<div class="suggestion empty">Aucun laboratoire trouvé</div>';
+    } else {
+      boiteSuggestions.innerHTML = suggestionsCourantes.map(function(l){
+        return '<div class="suggestion" data-nom="' + escapeHtml(l.nom) + '">' +
+          '<span>' + escapeHtml(l.nom) + '</span><span class="n">' + countAssignes(l) + '</span></div>';
+      }).join("");
+      Array.prototype.forEach.call(boiteSuggestions.querySelectorAll(".suggestion"), function(el){
+        el.addEventListener("mousedown", function(ev){ ev.preventDefault(); selectLabo(el.dataset.nom); });
+      });
+    }
+    boiteSuggestions.classList.add("show");
+  }
+
+  function selectLabo(nomLabo){
+    filtreLabo.value = nomLabo;
+    boiteSuggestions.classList.remove("show");
+    afficherResultat(nomLabo);
+  }
+
+  function afficherResultat(nomLabo){
     var zone = document.getElementById("resultatZone");
     if(!nomLabo){ zone.innerHTML = ""; return; }
     var labo = DATA.labos.find(function(l){ return l.nom === nomLabo; });
+    if(!labo){ zone.innerHTML = ""; return; }
     var assignes = DATA.pharmacistes.filter(function(p){ return labo.assign[p]; });
 
-    var html = '<div class="card"><h3 class="labo-title">' + escapeHtml(nomLabo) + '</h3>';
+    var html = '<div class="card"><h3 class="labo-title">' + escapeHtml(nomLabo) +
+      ' <span class="count">(' + assignes.length + ')</span></h3>';
     if(assignes.length === 0){
       html += '<div class="empty-state">Personne n\'est encore en charge de ce laboratoire. Passez sur l\'onglet <strong>Gérer mes labos</strong> pour vous l\'attribuer.</div>';
     } else {
@@ -405,12 +478,13 @@
       var moiCoche = !!labo.assign[moi];
       var autres = DATA.pharmacistes.filter(function(p){ return p !== moi && labo.assign[p]; });
 
+      var n = countAssignes(labo);
       var row = document.createElement("div");
       row.className = "labo-row";
       row.innerHTML =
         '<div class="left">' +
           '<div class="chk' + (moiCoche ? ' on' : '') + '">' + (moiCoche ? '✓' : '') + '</div>' +
-          '<div><div class="nom">' + escapeHtml(labo.nom) + '</div>' +
+          '<div><div class="nom">' + escapeHtml(labo.nom) + (n ? ' <span class="n" style="color:var(--text-muted);font-weight:600;">(' + n + ')</span>' : '') + '</div>' +
           (autres.length ? '<div class="autres">aussi : ' + escapeHtml(autres.join(", ")) + '</div>' : '') +
           '</div>' +
         '</div>';
@@ -451,6 +525,40 @@
         chk.classList.remove("saving");
         toast("Échec de l'enregistrement — réessayez.");
       });
+  }
+
+  // ---------- Onglet annuaire des pharmacies ----------
+  document.getElementById("filtrePharmacies").addEventListener("input", afficherPharmacies);
+
+  function afficherPharmacies(){
+    if(!DATA) return;
+    var q = normalize(document.getElementById("filtrePharmacies").value);
+    var cont = document.getElementById("listePharmacies");
+    var liste = DATA.annuaire.filter(function(e){
+      if(!q) return true;
+      return normalize(e.pharmacie).indexOf(q) !== -1 ||
+             normalize(e.titulaire).indexOf(q) !== -1 ||
+             normalize(e.ville).indexOf(q) !== -1;
+    });
+
+    if(!liste.length){
+      cont.innerHTML = '<p class="muted center">Aucune pharmacie ne correspond à la recherche.</p>';
+      return;
+    }
+
+    cont.innerHTML = liste.map(function(e){
+      var html = '<div class="contact-card pharma-card">';
+      if(e.role) html += '<div class="role">' + escapeHtml(e.role) + '</div>';
+      html += '<div class="nom">' + escapeHtml(e.pharmacie || e.titulaire) + '</div>';
+      if(e.titulaire) html += '<div class="pharmacie">' + escapeHtml(e.titulaire) + '</div>';
+      if(e.adresse || e.ville) html += '<div class="addr">' + escapeHtml([e.adresse, [e.cp,e.ville].filter(Boolean).join(" ")].filter(Boolean).join(" · ")) + '</div>';
+      html += '<div class="contact-links">';
+      if(e.telPro) html += '<a href="tel:' + escapeHtml(e.telPro.replace(/\s+/g,"")) + '">📞 ' + escapeHtml(e.telPro) + '</a>';
+      if(e.gsm) html += '<a href="tel:' + escapeHtml(e.gsm.replace(/\s+/g,"")) + '">📱 ' + escapeHtml(e.gsm) + '</a>';
+      if(e.email) html += '<a href="mailto:' + escapeHtml(e.email) + '">✉️ Email</a>';
+      html += '</div></div>';
+      return html;
+    }).join("");
   }
 
   // ---------- Jauge de charge ----------
