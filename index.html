@@ -112,6 +112,24 @@
   #resultatZone{margin-top:14px;}
   .labo-title{font-size:17px; font-weight:700; margin:0 0 10px;}
   .labo-title .count{color:var(--text-muted); font-weight:600;}
+
+  .link-btn{
+    background:none; border:none; font-family:inherit; font-size:13px; font-weight:700;
+    color:var(--primary-dark); cursor:pointer; padding:8px 2px 0; margin-top:2px;
+  }
+  .link-btn:hover{text-decoration:underline;}
+  #listeCompleteLabos{
+    background:var(--surface); border:1px solid var(--border); border-radius:var(--radius);
+    box-shadow:var(--shadow); margin-bottom:14px; overflow:hidden;
+  }
+  .labo-list-row{
+    display:flex; align-items:center; justify-content:space-between; gap:10px;
+    padding:11px 16px; font-size:14px; cursor:pointer; border-bottom:1px solid var(--border);
+  }
+  .labo-list-row:last-child{border-bottom:none;}
+  .labo-list-row:hover{background:var(--primary-light);}
+  .labo-list-row .n{font-size:12px; font-weight:700; color:var(--text-muted); flex:none;}
+  .labo-list-row .n.zero{color:#B7791F;}
   .contact-card{
     border:1px solid var(--border); border-radius:12px; padding:13px 14px;
     margin-bottom:10px; background:#FAFBF9;
@@ -221,7 +239,9 @@
         <input type="text" id="filtreLabo" autocomplete="off" placeholder="Tapez le nom d'un laboratoire…">
         <div class="suggestions" id="suggestions"></div>
       </div>
+      <button type="button" class="link-btn" id="toggleListeLabos">Voir tous les laboratoires</button>
     </div>
+    <div id="listeCompleteLabos" style="display:none;"></div>
     <div id="resultatZone"></div>
   </section>
 
@@ -263,7 +283,7 @@
     <p>Collez ici l'URL de déploiement de l'application Apps Script (Web App) reliée au Google Sheet.</p>
     <div class="field">
       <label for="inpUrl">URL de l'Apps Script</label>
-      <input type="text" id="inpUrl" placeholder="https://script.google.com/macros/s/AKfycbyTP64UO3AeNaxWZgN14SPVw0aAD-X3rtCqfXNWoo8IBpViFLQ2gtXA5qxygt4R5dmf/exec">
+      <input type="text" id="inpUrl" placeholder="https://script.google.com/macros/s/…/exec">
     </div>
     <div class="actions">
       <button class="btn btn-ghost" id="btnCloseSettings">Fermer</button>
@@ -374,6 +394,8 @@
       afficherListeGestion();
     }
     afficherPharmacies();
+    document.getElementById("listeCompleteLabos").style.display = "none";
+    document.getElementById("toggleListeLabos").textContent = "Voir tous les laboratoires (" + DATA.labos.length + ")";
   }
 
   // ---------- Onglet recherche : autocomplétion ----------
@@ -423,7 +445,37 @@
   function selectLabo(nomLabo){
     filtreLabo.value = nomLabo;
     boiteSuggestions.classList.remove("show");
+    document.getElementById("listeCompleteLabos").style.display = "none";
+    toggleListeLabos.textContent = "Voir tous les laboratoires (" + DATA.labos.length + ")";
     afficherResultat(nomLabo);
+  }
+
+  // ---------- Liste complète des laboratoires ----------
+  var toggleListeLabos = document.getElementById("toggleListeLabos");
+  toggleListeLabos.addEventListener("click", function(){
+    var cont = document.getElementById("listeCompleteLabos");
+    var visible = cont.style.display !== "none";
+    if(visible){
+      cont.style.display = "none";
+      toggleListeLabos.textContent = "Voir tous les laboratoires (" + DATA.labos.length + ")";
+    } else {
+      renderListeCompleteLabos();
+      cont.style.display = "block";
+      toggleListeLabos.textContent = "Masquer la liste";
+    }
+  });
+
+  function renderListeCompleteLabos(){
+    var cont = document.getElementById("listeCompleteLabos");
+    cont.innerHTML = DATA.labos.map(function(l){
+      var n = countAssignes(l);
+      return '<div class="labo-list-row" data-nom="' + escapeHtml(l.nom) + '">' +
+        '<span>' + escapeHtml(l.nom) + '</span>' +
+        '<span class="n' + (n===0 ? ' zero' : '') + '">' + n + '</span></div>';
+    }).join("");
+    Array.prototype.forEach.call(cont.querySelectorAll(".labo-list-row"), function(el){
+      el.addEventListener("click", function(){ selectLabo(el.dataset.nom); });
+    });
   }
 
   function afficherResultat(nomLabo){
