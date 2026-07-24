@@ -283,7 +283,7 @@
     <p>Collez ici l'URL de déploiement de l'application Apps Script (Web App) reliée au Google Sheet.</p>
     <div class="field">
       <label for="inpUrl">URL de l'Apps Script</label>
-      <input type="text" id="inpUrl" placeholder="https://script.google.com/macros/s/AKfycbyTP64UO3AeNaxWZgN14SPVw0aAD-X3rtCqfXNWoo8IBpViFLQ2gtXA5qxygt4R5dmf/exec">
+      <input type="text" id="inpUrl" placeholder="https://script.google.com/macros/s/…/exec">
     </div>
     <div class="actions">
       <button class="btn btn-ghost" id="btnCloseSettings">Fermer</button>
@@ -591,6 +591,8 @@
       return normalize(e.pharmacie).indexOf(q) !== -1 ||
              normalize(e.titulaire).indexOf(q) !== -1 ||
              normalize(e.ville).indexOf(q) !== -1;
+    }).slice().sort(function(a,b){
+      return String(a.titulaire||a.pharmacie).localeCompare(String(b.titulaire||b.pharmacie), 'fr', {sensitivity:'base'});
     });
 
     if(!liste.length){
